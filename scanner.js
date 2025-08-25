@@ -4,20 +4,21 @@ const resultDiv = document.getElementById('result');
 
 async function startScanner() {
   try {
-    // Request permission first
+    // Request camera permission
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    stream.getTracks().forEach(t => t.stop()); // release test stream
+    stream.getTracks().forEach(t => t.stop());
 
-    // Get available cameras
-    const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-    if (!devices.length) {
-      resultDiv.textContent = "No camera found";
+    // Get video input devices using standard MediaDevices API
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+    if (!videoDevices.length) {
+      resultDiv.textContent = 'No camera found';
       return;
     }
 
-    // Try to use back camera if available
-    const backCam = devices.find(d => /back|rear/i.test(d.label));
-    const deviceId = backCam ? backCam.deviceId : devices[0].deviceId;
+    // Prefer back camera if available
+    const backCam = videoDevices.find(d => /back|rear/i.test(d.label));
+    const deviceId = backCam ? backCam.deviceId : videoDevices[0].deviceId;
 
     // Start scanning
     await codeReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
@@ -27,7 +28,7 @@ async function startScanner() {
         if (navigator.vibrate) navigator.vibrate(200);
         setTimeout(() => {
           if (confirm(`Scanned: ${result.text}\nDo you want to scan more?`)) {
-            resultDiv.textContent = "";
+            resultDiv.textContent = '';
             startScanner();
           }
         }, 500);
@@ -35,10 +36,10 @@ async function startScanner() {
     });
   } catch (error) {
     console.error(error);
-    if (error.name === "NotAllowedError") {
-      alert("Camera access denied. Please enable camera permissions in browser settings.");
+    if (error.name === 'NotAllowedError') {
+      alert('Camera access denied. Please enable camera permissions in browser settings.');
     }
-    resultDiv.textContent = "Camera access error: " + error.message;
+    resultDiv.textContent = 'Camera access error: ' + error.message;
   }
 }
 
